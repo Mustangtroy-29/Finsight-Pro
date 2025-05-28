@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import wikipedia
+import yfinance as yf
+import plotly.graph_objects as go
 
 # -------------------------- Page Setup --------------------------
 st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="centered")
@@ -67,7 +69,23 @@ def get_wikipedia_summary(company_name):
     try:
         return wikipedia.summary(company_name, sentences=3)
     except:
-        return "📄 Wikipedia description not found."
+        return "📄 Description not found."
+    
+def plot_price_chart(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="6mo")
+        fig = go.Figure(data=[go.Candlestick(
+            x=hist.index,
+            open=hist['Open'],
+            high=hist['High'],
+            low=hist['Low'],
+            close=hist['Close']
+        )])
+        fig.update_layout(title="6-Month Price Trend", xaxis_title="Date", yaxis_title="Price")
+        st.plotly_chart(fig)
+    except Exception as e:
+        st.warning("Unable to fetch chart data.")
 
 # -------------------------- UI Logic --------------------------
 query = st.text_input("🔍 Search company name")
@@ -82,6 +100,8 @@ if query:
             selected_index = options.index(selected_option)
             selected_url = matches[selected_index]['url']
             selected_name = matches[selected_index]['name']
+
+            
 
             with st.spinner("📡 Fetching financial data..."):
                 data, error = get_screener_data(selected_url)
@@ -103,9 +123,11 @@ if query:
                                 st.markdown(f"**{key}**")
                                 st.success(value, icon="📌")
                                 st.caption(description)
-
+                    ticker_symbol = selected_url.split("/")[2] + ".NS"  # Assuming NSE
+                    plot_price_chart(ticker_symbol)
                     st.divider()
-                    st.markdown("### 📚 Company Description (Wikipedia)")
+                    st.markdown("### 📚 Company Description" \
+                    "")
                     st.info(get_wikipedia_summary(selected_name))
     else:
         st.warning("🔍 No matching companies found. Try another name.")
