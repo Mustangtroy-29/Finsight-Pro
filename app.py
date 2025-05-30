@@ -4,13 +4,12 @@ from bs4 import BeautifulSoup
 import wikipedia
 import yfinance as yf
 import plotly.graph_objects as go
+import plotly.express as px
 
 # -------------------------- Page Setup --------------------------
-st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="wide")
-st.markdown("""
-    <h1 style='text-align: center; margin-bottom: 0;'>📊 Finsight Pro</h1>
-    <p style='text-align: center; font-size: 18px;'>Your personalized stock screener powered by Screener.in & Wikipedia</p>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="centered")
+st.markdown("<h1 style='text-align: center;'>📊 Finsight Pro</h1>", unsafe_allow_html=True)
+st.caption("Your personalized stock screener powered by Screener.in & Wikipedia")
 
 # -------------------------- Descriptions --------------------------
 ratio_descriptions = {
@@ -62,7 +61,6 @@ def get_screener_data(relative_url):
     for key in fields_needed:
         data.setdefault(key, "N/A")
 
-    # Try to fetch sector
     about_section = soup.find("div", class_="company-profile")
     sector = "N/A"
     if about_section:
@@ -73,9 +71,9 @@ def get_screener_data(relative_url):
                 break
 
     data["Sector"] = sector
+
     return data, None, None
 
-# -------------------------- Utilities --------------------------
 def safe_float(value):
     try:
         clean = value.replace(",", "").replace("%", "").replace("-", "0").strip()
@@ -105,7 +103,24 @@ def plot_price_chart(ticker):
     except Exception as e:
         st.warning("Unable to fetch chart data.")
 
+def plot_key_ratios(data, theme_palette):
+    keys = ["Stock P/E", "ROE", "ROCE", "Dividend Yield"]
+    values = [safe_float(data[k]) for k in keys if k in data]
+    fig = px.bar(
+        x=values,
+        y=keys,
+        orientation='h',
+        labels={'x': 'Value', 'y': 'Ratio'},
+        title="🔍 Key Financial Ratios",
+        color=keys,
+        color_discrete_sequence=theme_palette
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 # -------------------------- UI Logic --------------------------
+theme = st.toggle("🌗 Dark Mode", value=False)
+theme_palette = px.colors.sequential.Magma if theme else px.colors.sequential.Plasma
+
 query = st.text_input("🔍 Search company name")
 
 if query:
@@ -125,11 +140,21 @@ if query:
                 if error:
                     st.error(error)
                 else:
-                    # Financial Summary
                     st.markdown(f"### 📈 Financial Summary for **{selected_name}**")
                     st.caption(f"**Sector**: {data.get('Sector', 'N/A')}")
-                    col1, col2 = st.columns(2)
 
+                    # Metric Highlights
+                    st.markdown("#### 📌 Key Metrics")
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("📈 Market Cap", data["Market Cap"])
+                    col2.metric("📉 P/E Ratio", data["Stock P/E"])
+                    col3.metric("💰 Dividend Yield", data["Dividend Yield"])
+
+                    st.divider()
+
+                    # Full Ratio Descriptions
+                    st.markdown("#### 📂 Full Ratio Breakdown")
+                    col1, col2 = st.columns(2)
                     for i, (key, value) in enumerate(data.items()):
                         if key == "Sector":
                             continue
@@ -144,8 +169,11 @@ if query:
                                 with st.expander(f"📊 {key}"):
                                     st.markdown(content)
 
+                    # Ratio Chart
+                    plot_key_ratios(data, theme_palette)
+
                     # Price Chart
-                    ticker_symbol = selected_url.split("/")[2] + ".NS"  # NSE
+                    ticker_symbol = selected_url.split("/")[2] + ".NS"
                     plot_price_chart(ticker_symbol)
 
                     # Wikipedia Description
