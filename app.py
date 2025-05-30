@@ -5,6 +5,9 @@ import wikipedia
 import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
+import requests
+from gnews import GNews
+
 
 # -------------------------- Page Setup --------------------------
 st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="centered")
@@ -33,6 +36,22 @@ def get_company_suggestions(query):
         return response.json()
     return []
 
+
+def get_news_articles(company_name):
+    try:
+        google_news = GNews(language='en', country='IN', max_results=5)
+        results = google_news.get_news(company_name)
+        articles = []
+        for article in results:
+            articles.append({
+                "title": article['title'],
+                "url": article['url'],
+                "description": article.get('description', 'No summary available')
+            })
+        return articles
+    except Exception as e:
+        return []
+    
 def get_screener_data(relative_url):
     full_url = f"https://www.screener.in{relative_url}"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -180,6 +199,25 @@ if query:
                     st.divider()
                     st.markdown("### 📚 Company Description")
                     st.info(get_wikipedia_summary(selected_name))
+
+                    # Latest News
+                    st.divider()
+                    st.markdown("### 📰 News & Updates")
+                    st.caption("Recent news articles related to the company")
+                    news_articles = get_news_articles(selected_name)
+                    if not news_articles:
+                        st.info("No recent news articles found.")
+                    else:
+                        for article in news_articles:
+                            with st.container():
+                                st.markdown(f"""
+                                <div style="border: 1px solid #ddd; border-radius: 10px; padding: 10px; margin-bottom: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
+                                    <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
+                                        <h4>{article['title']}</h4>
+                                        <p style="color: #555;">{article['description']}</p>
+                                    </a>
+                                </div>
+                                """, unsafe_allow_html=True)
 
     else:
         st.warning("🔍 No matching companies found. Try another name.")
