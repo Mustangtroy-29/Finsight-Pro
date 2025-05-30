@@ -1,4 +1,3 @@
-
 # 📊 Finsight Pro
 
 **Finsight Pro** is a sleek and user-friendly Streamlit-based stock screener that scrapes key financial data from [Screener.in](https://www.screener.in/). It supports autocomplete search, detailed ratio insights, financial filters, and price trend visualizations using Plotly.
@@ -19,14 +18,15 @@
 
 ## 🛠️ Tech Stack
 
-| Tool | Purpose |
-|------|---------|
-| `Streamlit` | UI framework |
-| `requests` | API and web scraping |
-| `BeautifulSoup` | HTML parsing from Screener |
-| `Wikipedia API` | Company description |
-| `yfinance` | Historical stock price data |
-| `Plotly` | Candlestick charts |
+| Tool            | Purpose                     |
+| --------------- | --------------------------- |
+| `Streamlit`     | UI framework                |
+| `requests`      | API and web scraping        |
+| `BeautifulSoup` | HTML parsing from Screener  |
+| `Wikipedia API` | Company description         |
+| `yfinance`      | Historical stock price data |
+| `Plotly`        | Candlestick charts          |
+| `GNews`         | Provide news & updates      |
 
 ---
 
@@ -56,14 +56,17 @@ pip install -r requirements.txt
 ```bash
 streamlit run app.py
 ```
+
 ---
 
-## 🌐 Live Demo  
+## 🌐 Live Demo
+
 🔗 [Click here to try it live](https://your-streamlit-app-link)
 
 ---
 
-## ⚠️ Disclaimer  
+## ⚠️ Disclaimer
+
 This app is for educational and informational purposes only.  
 Financial data is fetched from third-party sources and may not always be accurate or real-time.  
 **Always verify data before making investment decisions.**
