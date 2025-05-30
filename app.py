@@ -4,12 +4,13 @@ from bs4 import BeautifulSoup
 import wikipedia
 import yfinance as yf
 import plotly.graph_objects as go
-import plotly.express as px
 
 # -------------------------- Page Setup --------------------------
-st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="centered")
-st.markdown("<h1 style='text-align: center;'>📊 Finsight Pro</h1>", unsafe_allow_html=True)
-st.caption("Your personalized stock screener powered by Screener.in & Wikipedia")
+st.set_page_config(page_title="Finsight Pro - Stock Screener", layout="wide")
+st.markdown("""
+    <h1 style='text-align: center; margin-bottom: 0;'>📊 Finsight Pro</h1>
+    <p style='text-align: center; font-size: 18px;'>Your personalized stock screener powered by Screener.in & Wikipedia</p>
+""", unsafe_allow_html=True)
 
 # -------------------------- Descriptions --------------------------
 ratio_descriptions = {
@@ -38,7 +39,7 @@ def get_screener_data(relative_url):
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(full_url, headers=headers)
     if response.status_code != 200:
-        return None, f"❌ Failed to load company page. Status: {response.status_code}"
+        return None, None, f"❌ Failed to load company page. Status: {response.status_code}"
 
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -72,28 +73,15 @@ def get_screener_data(relative_url):
                 break
 
     data["Sector"] = sector
+    return data, None, None
 
-    # Get peer companies (if available)
-    peers = []
-    peer_table = soup.find("table", class_="data-table")
-    if peer_table:
-        for row in peer_table.find_all("tr")[1:]:
-            cols = row.find_all("td")
-            if len(cols) >= 2:
-                name = cols[0].get_text(strip=True)
-                pe = cols[1].get_text(strip=True)
-                roe = cols[2].get_text(strip=True) if len(cols) > 2 else "N/A"
-                peers.append({"Name": name, "PE": pe, "ROE": roe})
-
-    return data, peers, None
-
+# -------------------------- Utilities --------------------------
 def safe_float(value):
     try:
         clean = value.replace(",", "").replace("%", "").replace("-", "0").strip()
         return float(clean)
     except:
         return 0.0
-
 
 def get_wikipedia_summary(company_name):
     try:
@@ -113,19 +101,9 @@ def plot_price_chart(ticker):
             close=hist['Close']
         )])
         fig.update_layout(title="6-Month Price Trend", xaxis_title="Date", yaxis_title="Price")
-        st.plotly_chart(fig)
+        st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.warning("Unable to fetch chart data.")
-
-def plot_peer_comparison(peers):
-    if not peers:
-        return
-    st.subheader("📊 Peer Comparison")
-    pe_data = [safe_float(p["PE"]) for p in peers]
-    #roe_data = [safe_float(p["ROE"]) for p in peers]
-    #roce_data = [safe_float(p["ROCE"]) for p in peers]
-    fig = px.bar(x=[p["Name"] for p in peers], y=pe_data, labels={'x': 'Company', 'y': 'P/E Ratio'})
-    st.plotly_chart(fig)
 
 # -------------------------- UI Logic --------------------------
 query = st.text_input("🔍 Search company name")
@@ -143,7 +121,7 @@ if query:
             selected_name = matches[selected_index]['name']
 
             with st.spinner("📡 Fetching financial data..."):
-                data, peers, error = get_screener_data(selected_url)
+                data, _, error = get_screener_data(selected_url)
                 if error:
                     st.error(error)
                 else:
@@ -169,10 +147,6 @@ if query:
                     # Price Chart
                     ticker_symbol = selected_url.split("/")[2] + ".NS"  # NSE
                     plot_price_chart(ticker_symbol)
-
-                    # Peer Comparison Chart
-                    if peers:
-                        plot_peer_comparison(peers)
 
                     # Wikipedia Description
                     st.divider()
